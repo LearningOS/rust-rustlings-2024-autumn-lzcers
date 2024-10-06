@@ -2,13 +2,12 @@
     single linked list merge
     This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
 
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
 use std::vec::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Node<T> {
     val: T,
     next: Option<NonNull<Node<T>>>,
@@ -20,19 +19,19 @@ impl<T> Node<T> {
     }
 }
 #[derive(Debug)]
-struct LinkedList<T> {
+struct LinkedList<T: PartialOrd + Clone> {
     length: u32,
     start: Option<NonNull<Node<T>>>,
     end: Option<NonNull<Node<T>>>,
 }
 
-impl<T> Default for LinkedList<T> {
+impl<T: PartialOrd + Clone> Default for LinkedList<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> LinkedList<T> {
+impl<T: PartialOrd + Clone> LinkedList<T> {
     pub fn new() -> Self {
         Self {
             length: 0,
@@ -66,19 +65,46 @@ impl<T> LinkedList<T> {
             },
         }
     }
+
     pub fn merge(list_a: LinkedList<T>, list_b: LinkedList<T>) -> Self {
         //TODO
-        Self {
-            length: 0,
-            start: None,
-            end: None,
+        let mut merged_list = Self::new();
+        let mut next_a = list_a.start;
+        let mut next_b = list_b.start;
+
+        // 11, 33, 44, 88, 89, 90, 100
+        // 1, 22, 30, 45
+        while let (Some(a_node), Some(b_node)) = (next_a, next_b) {
+            unsafe {
+                let (a_ptr, b_ptr) = (a_node.as_ptr(), b_node.as_ptr());
+                if (*a_ptr).val <= (*b_ptr).val {
+                    merged_list.add((*a_ptr).val.clone());
+                    next_a = (*a_ptr).next;
+                } else {
+                    merged_list.add((*b_ptr).val.clone());
+                    next_b = (*b_ptr).next;
+                }
+            };
         }
+        let mut rest = None;
+        if next_a.is_some() {
+            rest = next_a;
+        } else {
+            rest = next_b;
+        }
+        while let Some(r) = rest {
+            unsafe {
+                merged_list.add((*r.as_ptr()).val.clone());
+                rest = (*r.as_ptr()).next;
+            }
+        }
+        merged_list
     }
 }
 
 impl<T> Display for LinkedList<T>
 where
-    T: Display,
+    T: Display + PartialOrd + Clone,
 {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.start {
@@ -90,7 +116,7 @@ where
 
 impl<T> Display for Node<T>
 where
-    T: Display,
+    T: Display + PartialOrd + Clone,
 {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.next {
